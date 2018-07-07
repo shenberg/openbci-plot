@@ -22,16 +22,19 @@ function component() {
   return element;
 }
 
-function drawLine(ctx, ys) {
+function drawLine(ctx, ys, startWidth) {
   ctx.beginPath();
-  ctx.moveTo(0, ys[0]);
+  ctx.moveTo(-startWidth*ys.length,0);
+  ctx.quadraticCurveTo(0, 0, 0, ys[0]);
   for(let i = 1; i < ys.length; i++) {
     ctx.lineTo(i, ys[i]);
   }
+  ctx.quadraticCurveTo(ys.length - 1, 0, ys.length * (1 + startWidth), 0);
   ctx.stroke();
 }
-
-function drawTimeseriesFrame(ctx, ys) {
+const styles = ["blue","red","black","orange"];
+function drawTimeseriesFrame(ctx, samples) {
+  const sidesRelativeWidth = 1/6; // width of flat-line-ish portion relative to canvas size
   // save state before we mess around with it (specifically transform)
   ctx.save();
   // reset the canvas contents;
@@ -39,11 +42,18 @@ function drawTimeseriesFrame(ctx, ys) {
 
   // make y=0 point to mid-canvas
   ctx.translate(0, ctx.canvas.height / 2);
-  // X coords: make 0 left side, (ys.length - 1) right side
+  // X coords: make 0 left side, (ys.length + 1) right side
+  // (NOTE: implicitly assuming all samples buffers same width, taking width from samples.data[0])
   // Y coords: flip up-down (make positive Y up) and scale so top is +3000, bottom -3000
-  ctx.scale((ctx.canvas.width - 1) / (ys.length - 1), -ctx.canvas.height/8000);
-  ctx.strokeStyle = 'blue';
-  drawLine(ctx, ys);
+  ctx.scale((ctx.canvas.width - 1) / (samples.data[0].length - 1), -ctx.canvas.height/8000);
+
+  // leave space for the sides
+  ctx.scale(1 - 2*sidesRelativeWidth, 1);
+  ctx.translate(samples.data[0].length * sidesRelativeWidth, 0);
+  for (const [i, ys] of samples.data.entries()) {
+    ctx.strokeStyle = styles[i];
+    drawLine(ctx, ys, sidesRelativeWidth);
+  }
   // reset all the scaling
   ctx.restore();
 }
@@ -70,17 +80,14 @@ const onConnectClick = async () => {
     });
     let timeSeries = ganglion.stream.pipe(
       voltsToMicrovolts(),
-      epoch({ duration: 256, interval: 84 })
+      epoch({ duration: 256, interval: 2 })
     );
 
     ganglionDraw = animationFrame.pipe(
         withLatestFrom(timeSeries)
       ).subscribe(([ts, samples]) => {
-        /*console.log(ts, "samples", samples);
-        drawTimeseriesFrame(sampleCtx, samples.data[0]);
-        drawTimeseriesFrame(sampleCtx, samples.data[1]);
-        drawTimeseriesFrame(sampleCtx, samples.data[2]);*/
-        drawTimeseriesFrame(sampleCtx, samples.data[3]);
+        /*console.log(ts, "samples", samples);*/
+        drawTimeseriesFrame(sampleCtx, samples);
       });
 
     ganglion.stream.pipe(
