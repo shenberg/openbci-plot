@@ -62,7 +62,7 @@ function drawTimeseriesFrame(ctx, samples) {
 
 let sampleCtx = document.getElementById('sampleScreen').getContext('2d');
 let freqCtx = document.getElementById('freqScreen').getContext('2d');
-let freqImage = freqCtx.createImageData(freqCtx.width, 128);
+let freqImage = freqCtx.createImageData(600, 128); // TODO
 
 let ganglion;
 
@@ -97,12 +97,24 @@ const onConnectClick = async function ()  {
         drawTimeseriesFrame(sampleCtx, samples);
       });
 
+    let col = 599; // TODO:
+    for (let i = 0; i < freqImage.data.length; i += 4) {
+      freqImage.data[i + 3] = 255;
+    }
     ganglion.stream.pipe(
       voltsToMicrovolts(),
-      epoch({ duration: 256, interval: 100 }),
+      epoch({ duration: 256, interval: 30 }),
       fft({ bins: 256 })
     ).subscribe(function(samples) {
-      console.log(samples);
+      for (let i = 0; i < samples.freqs.length; i++) {
+        for(let j = 0; j < 3; j++) {
+          freqImage.data[(col + i*600)*4 + j] = samples.psd[j][(i/9) | 0];
+        }
+      }
+      col--;
+      if (col < 1) { col = 599; } // TODO: better
+      freqCtx.putImageData(freqImage, 0, 0);
+      //console.log(samples, col);
     });
 };
 
