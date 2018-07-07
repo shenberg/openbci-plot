@@ -6,6 +6,7 @@ import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
 import { interval } from 'rxjs';
 import { Scheduler } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
+import './style.css';
 
 function component() {
   var element = document.createElement('div');
@@ -60,14 +61,18 @@ let animationFrame = interval(
       //.timestamp();
 
 let ganglionDraw;
+let collectSample;
+let recordingSubscription;
 
-const onConnectClick = async () => {
+const onConnectClick = async function ()  {
     ganglion = new Ganglion();
     await ganglion.connect();
     await ganglion.start();
-    ganglion.stream.subscribe(sample => {
-        //console.log('sample', sample);
-    });
+    const onSample = function(sample)  {
+      //console.log('sample', sample);
+    }
+    ganglion.stream.subscribe(onSample);
+    
     let timeSeries = ganglion.stream.pipe(
       voltsToMicrovolts(),
       epoch({ duration: 256, interval: 84 })
@@ -75,7 +80,7 @@ const onConnectClick = async () => {
 
     ganglionDraw = animationFrame.pipe(
         withLatestFrom(timeSeries)
-      ).subscribe(([ts, samples]) => {
+      ).subscribe(function([ts, samples]) {
         /*console.log(ts, "samples", samples);
         drawTimeseriesFrame(sampleCtx, samples.data[0]);
         drawTimeseriesFrame(sampleCtx, samples.data[1]);
@@ -88,16 +93,49 @@ const onConnectClick = async () => {
       epoch({ duration: 256, interval: 100 }),
       fft({ bins: 256 }),
       alphaPower()
-    ).subscribe(sample => {
-        //console.log('alphaPower', sample);
+    ).subscribe(function(sample) {
+      //console.log('alphaPower', sample);
     });
 };
 
-const onDisconnectClick = async () => {
-    ganglion.disconnect();
-    if (ganglionDraw !== undefined) {
-      ganglionDraw.unsubscribe();
-    }
+const onStartRecordingClick = function ()  {
+  if (ganglion === undefined) {
+    console.log('not connected, not recording');
+    return;
+  }
+  console.log('start recording');
+
+  collectSample = [];
+  recordingSubscription = ganglion.stream.subscribe(function(sample) {
+    collectSample.push(sample);
+  });
+  //ganglion.pipe(withLatestFrom(timeSeries)).subscribe(function([ts, samples]).extend(collectSample, samples)
+  //console.log(collectSample);
+};
+
+const onStopRecordingClick = async function () {
+  console.log("stop recording");
+  if (recordingSubscription === undefined) {
+    console.log("wasn't recording on stop, doing nothing");
+    return;
+  }
+
+  recordingSubscription.unsubscribe();
+  console.log("collected samples: ", collectSample.length);
+
+  let file = new Blob([JSON.stringify(collectSample)], {type : 'application/json'});
+  let a = document.getElementById("save-recording");
+  a.href = URL.createObjectURL(file);
+  a.download = 'recording.json';
+};
+
+const onDisconnectClick = function () {
+  onStopRecordingClick();
+  ganglion.disconnect();
+  if (ganglionDraw !== undefined) {
+    ganglionDraw.unsubscribe();
+  }
+  ganglion = undefined;
 };
 
 document.getElementById('connect')
@@ -106,4 +144,12 @@ document.getElementById('connect')
 document.getElementById('disconnect')
     .addEventListener('click', onDisconnectClick);
 
+document.getElementById('start-recording')
+    .addEventListener('click', onStartRecordingClick);
+
+document.getElementById('stop-recording')
+    .addEventListener('click', onStopRecordingClick);
+
 document.body.appendChild(component());
+
+
