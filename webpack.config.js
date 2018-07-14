@@ -4,8 +4,7 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
   entry: {
-  	app: './src/index.js',
-  	print: './src/print.js',
+    app: './src/index.js',
   },
   mode: 'development',
   devtool: 'inline-source-map',

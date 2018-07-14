@@ -1,27 +1,11 @@
 
 import _ from 'lodash';
-import printMe from './print.js';
 import Ganglion from 'ganglion-ble';
 import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
 import { interval } from 'rxjs';
 import { Scheduler } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import './style.css';
-
-function component() {
-  var element = document.createElement('div');
-  var btn = document.createElement('button');
-
-  // Lodash, currently included via a script, is required for this line to work
-  element.innerHTML = _.join(['Hello', 'webpack'], ' ');
-
-  btn.innerHTML = 'Click me and check the console!';
-  btn.onclick = printMe;
-
-  element.appendChild(btn);
-
-  return element;
-}
 
 function drawLine(ctx, ys, startWidth) {
   ctx.beginPath();
@@ -61,8 +45,8 @@ function drawTimeseriesFrame(ctx, samples) {
 }
 
 let sampleCtx = document.getElementById('sampleScreen').getContext('2d');
-let freqCtx = document.getElementById('freqScreen').getContext('2d');
-let freqImage = freqCtx.createImageData(600, 128); // TODO
+
+
 
 let ganglion;
 
@@ -76,15 +60,22 @@ let ganglionDraw;
 let collectSample;
 let recordingSubscription;
 
+// TODO: frequency plot - works but unused
+/*
+let freqCtx = document.getElementById('freqScreen').getContext('2d');
+let freqImage = freqCtx.createImageData(600, 128); // TODO
+*/
+
 const onConnectClick = async function ()  {
     ganglion = new Ganglion();
     await ganglion.connect();
     await ganglion.start();
+    /*
     const onSample = function(sample)  {
       //console.log('sample', sample);
     }
     ganglion.stream.subscribe(onSample);
-    
+    */
     let timeSeries = ganglion.stream.pipe(
       voltsToMicrovolts(),
       epoch({ duration: 256, interval: 2 })
@@ -97,6 +88,7 @@ const onConnectClick = async function ()  {
         drawTimeseriesFrame(sampleCtx, samples);
       });
 
+    /*
     let col = 599; // TODO:
     for (let i = 0; i < freqImage.data.length; i += 4) {
       freqImage.data[i + 3] = 255;
@@ -116,6 +108,7 @@ const onConnectClick = async function ()  {
       freqCtx.putImageData(freqImage, 0, 0);
       //console.log(samples, col);
     });
+    */
 };
 
 const onStartRecordingClick = function ()  {
@@ -129,8 +122,6 @@ const onStartRecordingClick = function ()  {
   recordingSubscription = ganglion.stream.subscribe(function(sample) {
     collectSample.push(sample);
   });
-  //ganglion.pipe(withLatestFrom(timeSeries)).subscribe(function([ts, samples]).extend(collectSample, samples)
-  //console.log(collectSample);
 };
 
 const onStopRecordingClick = async function () {
@@ -158,6 +149,11 @@ const onDisconnectClick = function () {
   ganglion = undefined;
 };
 
+
+
+
+/////// set up button clicks old-school ////////
+
 document.getElementById('connect')
     .addEventListener('click', onConnectClick);
 
@@ -170,6 +166,5 @@ document.getElementById('start-recording')
 document.getElementById('stop-recording')
     .addEventListener('click', onStopRecordingClick);
 
-document.body.appendChild(component());
 
 
