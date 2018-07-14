@@ -2,8 +2,7 @@
 import _ from 'lodash';
 import Ganglion from 'ganglion-ble';
 import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
-import { interval } from 'rxjs';
-import { Scheduler } from 'rxjs';
+import { interval, Observable, Scheduler } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import './style.css';
 
@@ -66,27 +65,76 @@ let freqCtx = document.getElementById('freqScreen').getContext('2d');
 let freqImage = freqCtx.createImageData(600, 128); // TODO
 */
 
-const onConnectClick = async function ()  {
-    ganglion = new Ganglion();
-    await ganglion.connect();
-    await ganglion.start();
-    /*
-    const onSample = function(sample)  {
-      //console.log('sample', sample);
+// return promise that resolves in ms milliseconds
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+// TODO: ugh, hard-coded play recording
+function recordPlayer(data) {
+  let observable = Observable.create(async function (observer) {
+    // repeat the file forever
+    while(true) {
+      const startTimeReal = +new Date;
+      const startDataTime = data[0].timestamp;
+      let dtReal = (+new Date) - startTimeReal;
+      for (const item of data) {
+        const dtStream = item.timestamp - startDataTime;
+        if (dtStream > dtReal) {
+          await timeout(dtStream - dtReal);
+          dtReal = (+new Date) - startTimeReal;
+        }
+        observer.next(item);
+      }
     }
-    ganglion.stream.subscribe(onSample);
-    */
-    let timeSeries = ganglion.stream.pipe(
+  });
+  return observable;
+}
+
+let recording;
+let request = new XMLHttpRequest();
+request.open('GET','/recording.json', true);
+request.onload = function () {
+  console.log("response");
+  if ((request.status >= 200) && (request.status < 400)) {
+    console.log("got recording");
+    recording = recordPlayer(JSON.parse(request.responseText));
+    drawFromStream(recording);
+  }
+};
+request.onerror = function(e){
+  console.log("error", e);
+}
+// TODO: comment-out to stop auto-play of recording
+request.send();
+
+
+function drawFromStream(stream) {
+    let timeSeries = stream.pipe(
       voltsToMicrovolts(),
       epoch({ duration: 256, interval: 2 })
     );
-
+    if (ganglionDraw !== undefined) {
+      ganglionDraw.unsubscribe();
+    }
     ganglionDraw = animationFrame.pipe(
         withLatestFrom(timeSeries)
       ).subscribe(function([ts, samples]) {
         /*console.log(ts, "samples", samples);*/
         drawTimeseriesFrame(sampleCtx, samples);
       });
+}
+
+const onConnectClick = async function ()  {
+    ganglion = new Ganglion();
+    await ganglion.connect();
+    await ganglion.start();
+    drawFromStream(ganglion.stream);
+    /*
+    const onSample = function(sample)  {
+      //console.log('sample', sample);
+    }
+    ganglion.stream.subscribe(onSample);
+    */
 
     /*
     let col = 599; // TODO:
