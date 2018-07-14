@@ -35,8 +35,9 @@ function drawTimeseriesFrame(ctx, samples) {
   ctx.scale((ctx.canvas.width - 1) / (samples.data[0].length - 1), -ctx.canvas.height/800);
 
   // leave space for the sides
-  ctx.scale(1 - 2*sidesRelativeWidth, 1);
-  ctx.translate(samples.data[0].length * sidesRelativeWidth, 0);
+  ctx.scale(1/(1 + 2*sidesRelativeWidth), 1);
+  ctx.translate((samples.data[0].length-1)*sidesRelativeWidth, 0);
+
   /*for (const [i, ys] of samples.data.entries()) {
     ctx.strokeStyle = styles[i];
     ctx.lineWidth = 2;
