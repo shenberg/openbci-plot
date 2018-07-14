@@ -6,6 +6,9 @@ import { interval, Observable, Scheduler } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import './style.css';
 
+// TODO: connect to range control on page
+let chosenElectrode = 3;
+
 function drawLine(ctx, ys, startWidth) {
   ctx.beginPath();
   ctx.moveTo(-startWidth*ys.length,0);
@@ -29,16 +32,19 @@ function drawTimeseriesFrame(ctx, samples) {
   // X coords: make 0 left side, (ys.length + 1) right side
   // (NOTE: implicitly assuming all samples buffers same width, taking width from samples.data[0])
   // Y coords: flip up-down (make positive Y up) and scale so top is +3000, bottom -3000
-  ctx.scale((ctx.canvas.width - 1) / (samples.data[0].length - 1), -ctx.canvas.height/8000);
+  ctx.scale((ctx.canvas.width - 1) / (samples.data[0].length - 1), -ctx.canvas.height/800);
 
   // leave space for the sides
   ctx.scale(1 - 2*sidesRelativeWidth, 1);
   ctx.translate(samples.data[0].length * sidesRelativeWidth, 0);
-  for (const [i, ys] of samples.data.entries()) {
+  /*for (const [i, ys] of samples.data.entries()) {
     ctx.strokeStyle = styles[i];
     ctx.lineWidth = 2;
     drawLine(ctx, ys, sidesRelativeWidth);
-  }
+  }*/
+  ctx.strokeStyle = styles[chosenElectrode];
+  ctx.lineWidth = 2;
+  drawLine(ctx, samples.data[chosenElectrode], sidesRelativeWidth);  
   // reset all the scaling
   ctx.restore();
 }
