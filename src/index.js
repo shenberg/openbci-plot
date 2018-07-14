@@ -117,7 +117,7 @@ request.send();
 function drawFromStream(stream) {
     let timeSeries = stream.pipe(
       voltsToMicrovolts(),
-      epoch({ duration: 256, interval: 2 })
+      epoch({ duration: 1024, interval: 2 })
     );
     if (ganglionDraw !== undefined) {
       ganglionDraw.unsubscribe();
