@@ -2,10 +2,9 @@
 import _ from 'lodash';
 import Ganglion from 'ganglion-ble';
 import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
-import { interval, Observable, Scheduler } from 'rxjs';
+import { interval, Observable, animationFrameScheduler, of } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import './style.css';
-
 // TODO: connect to range control on page
 let chosenElectrode = 3;
 
@@ -20,8 +19,24 @@ function drawLine(ctx, ys, startWidth) {
   ctx.stroke();
 }
 const styles = ["blue","red","black","orange"];
+
+
+function makeStyles(lineNum) {
+  let result = [];
+  for(let i = lineNum-1; i >= 0 ; i -= 1) {
+    result.push({
+      style: `rgba(255,${255*(1 - Math.pow(i / lineNum, 0.25)) | 0},255,${1 - Math.pow(i / lineNum, 0.25)})`,
+      width: 1 + 2*i*i
+     });
+  }
+  return result;
+}
+const lineNum = 5;
+const lineStyles = makeStyles(lineNum);
+
+
 function drawTimeseriesFrame(ctx, samples) {
-  const sidesRelativeWidth = 1/6; // width of flat-line-ish portion relative to canvas size
+  const sidesRelativeWidth = 1/8; // width of flat-line-ish portion relative to canvas size
   // save state before we mess around with it (specifically transform)
   ctx.save();
   // reset the canvas contents;
@@ -43,9 +58,21 @@ function drawTimeseriesFrame(ctx, samples) {
     ctx.lineWidth = 2;
     drawLine(ctx, ys, sidesRelativeWidth);
   }*/
+  //ctx.globalCompositeOperation = 'lighter';
   ctx.strokeStyle = styles[chosenElectrode];
-  ctx.lineWidth = 2;
-  drawLine(ctx, samples.data[chosenElectrode], sidesRelativeWidth);  
+  ctx.lineJoin = 'round';
+  for(let style of lineStyles) {
+  //for(let i = lineNum-1; i >= 0 ; i -= 1) {
+    //console.log(`rgba(255,0,255,${1 - Math.pow(i / lineNum, 1)})`);
+    //ctx.strokeStyle = `rgba(255,${255*(1 - Math.pow(i / lineNum, 0.25)) | 0},255,${1 - Math.pow(i / lineNum, 0.25)})`;
+    //ctx.strokeStyle = `rgba(255,${1 - Math.pow(i / lineNum, 1)},255,${0.5 * (1 - Math.pow(i / lineNum, 1))})`;
+    //ctx.strokeStyle = `rgb(${255/lineNum | 0},${128*(1 - Math.pow(i / lineNum, 0.5)) | 0},${255/lineNum | 0})`;
+    //ctx.strokeStyle = `rgb(${255/lineNum | 0},${128*Math.pow(2, -i) | 0},${255/lineNum | 0})`;
+    //ctx.lineWidth = 1 + 2*i*i;
+    ctx.strokeStyle = style.style;
+    ctx.lineWidth = style.width;
+    drawLine(ctx, samples.data[chosenElectrode], sidesRelativeWidth);
+    } 
   // reset all the scaling
   ctx.restore();
 }
@@ -55,12 +82,10 @@ let sampleCtx = document.getElementById('sampleScreen').getContext('2d');
 
 
 let ganglion;
-
 let animationFrame = interval(
-        0,
-        Scheduler.requestAnimationFrame
+        null,
+        animationFrameScheduler
       );
-      //.timestamp();
 
 let ganglionDraw;
 let collectSample;
