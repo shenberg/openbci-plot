@@ -10,8 +10,9 @@ let chosenElectrode = 3;
 
 function drawLine(ctx, ys, startWidth) {
   ctx.beginPath();
-  ctx.moveTo(-startWidth*ys.length,0);
-  ctx.quadraticCurveTo(0, 0, 0, ys[0]);
+  // ctx.moveTo(-startWidth*ys.length,0);
+  ctx.moveTo(0,ys[0]);
+  // ctx.quadraticCurveTo(0, 0, 0, ys[0]);
   for(let i = 1; i < ys.length; i++) {
     ctx.lineTo(i, ys[i]);
   }
@@ -50,8 +51,8 @@ function drawTimeseriesFrame(ctx, samples) {
   ctx.scale((ctx.canvas.width - 1) / (samples.data[0].length - 1), -ctx.canvas.height/800);
 
   // leave space for the sides
-  ctx.scale(1/(1 + 2*sidesRelativeWidth), 1);
-  ctx.translate((samples.data[0].length-1)*sidesRelativeWidth, 0);
+  ctx.scale(1/(1 + 1*sidesRelativeWidth), 1);
+  // ctx.translate((samples.data[0].length-1)*sidesRelativeWidth, 0);
 
   /*for (const [i, ys] of samples.data.entries()) {
     ctx.strokeStyle = styles[i];
@@ -141,6 +142,9 @@ request.send();
 
 
 function drawFromStream(stream) {
+  let container = document.getElementById('canvas-container');
+  let i = 0;
+
     let timeSeries = stream.pipe(
       voltsToMicrovolts(),
       epoch({ duration: 1024, interval: 2 })
@@ -151,8 +155,11 @@ function drawFromStream(stream) {
     ganglionDraw = animationFrame.pipe(
         withLatestFrom(timeSeries)
       ).subscribe(function([ts, samples]) {
-        /*console.log(ts, "samples", samples);*/
+        if(i<100){console.log(ts, "samples", samples);}
         drawTimeseriesFrame(sampleCtx, samples);
+        i++;
+        // let newbackground=`background-position: -1px 10px, -${i}px -1px, -1px -8px, -${i}px -1px;`
+        // container.style.cssText= newbackground;
       });
 }
 
