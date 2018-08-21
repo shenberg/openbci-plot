@@ -3,7 +3,7 @@ import _ from 'lodash';
 import Ganglion from 'ganglion-ble';
 import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
 import { interval, Observable, animationFrameScheduler, of } from 'rxjs';
-import { withLatestFrom } from 'rxjs/operators';
+import { withLatestFrom, map } from 'rxjs/operators';
 import './style.css';
 // TODO: connect to range control on page
 let chosenElectrode = 3;
@@ -34,7 +34,6 @@ function makeStyles(lineNum) {
 }
 const lineNum = 5;
 const lineStyles = makeStyles(lineNum);
-
 
 function drawTimeseriesFrame(ctx, samples) {
   const sidesRelativeWidth = 1/8; // width of flat-line-ish portion relative to canvas size
@@ -145,22 +144,25 @@ function drawFromStream(stream) {
   let container = document.getElementById('canvas-container');
   let i = 0;
 
-    let timeSeries = stream.pipe(
-      voltsToMicrovolts(),
-      epoch({ duration: 1024, interval: 2 })
-    );
-    if (ganglionDraw !== undefined) {
-      ganglionDraw.unsubscribe();
-    }
-    ganglionDraw = animationFrame.pipe(
-        withLatestFrom(timeSeries)
-      ).subscribe(function([ts, samples]) {
-        if(i<100){console.log(ts, "samples", samples);}
-        drawTimeseriesFrame(sampleCtx, samples);
-        i++;
-        // let newbackground=`background-position: -1px 10px, -${i}px -1px, -1px -8px, -${i}px -1px;`
-        // container.style.cssText= newbackground;
-      });
+  let timeSeries = stream.pipe(
+    voltsToMicrovolts(),
+    epoch({ duration: 1024, interval: 2 }),
+    map((item, index) => { item.index = index; return item; })
+  );
+  if (ganglionDraw !== undefined) {
+    ganglionDraw.unsubscribe();
+  }
+  ganglionDraw = animationFrame.pipe(
+      withLatestFrom(timeSeries)
+    ).subscribe(function([ts, samples]) {
+      if(i<100){console.log(ts, "samples", samples);}
+      drawTimeseriesFrame(sampleCtx, samples);
+      i++;
+      // move background with the line
+      //const index = (samples.index*2 / 1023) * (container.offsetWidth*8/9);
+      //let newbackground=`background-position: -1px 10px, -${index}px -1px, -1px -8px, -${index}px -1px;`
+      //container.style.cssText= newbackground;
+    });
 }
 
 const onConnectClick = async function ()  {
