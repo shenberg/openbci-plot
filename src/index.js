@@ -5,6 +5,7 @@ import { voltsToMicrovolts, epoch, fft, alphaPower } from "@neurosity/pipes";
 import { interval, Observable, animationFrameScheduler, of } from 'rxjs';
 import { withLatestFrom, map } from 'rxjs/operators';
 import './style.css';
+import '@fortawesome/fontawesome-free/css/all.css';
 // TODO: connect to range control on page
 let chosenElectrode = 3;
 
@@ -130,7 +131,6 @@ request.onload = function () {
   if ((request.status >= 200) && (request.status < 400)) {
     console.log("got recording");
     recording = recordPlayer(JSON.parse(request.responseText));
-    drawFromStream(recording);
   }
 };
 request.onerror = function(e){
@@ -198,6 +198,8 @@ const onConnectClick = async function ()  {
       //console.log(samples, col);
     });
     */
+    let btn = document.getElementById('connect-disconnect');
+    btn.classList.add('connected');
 };
 
 const onStartRecordingClick = function ()  {
@@ -234,26 +236,53 @@ const onDisconnectClick = function () {
   ganglion.disconnect();
   if (ganglionDraw !== undefined) {
     ganglionDraw.unsubscribe();
+    ganglionDraw = undefined;
   }
   ganglion = undefined;
+  let btn = document.getElementById('connect-disconnect');
+  btn.classList.remove('connected');
 };
 
+function onConnectDisconnectClick() {
+  if (ganglion === undefined) {
+    onConnectClick();
+  } else {
+    onDisconnectClick();
+  }
+}
 
+function onStartStopRecordingClick() {
+  let button = document.getElementById('start-stop-recording');
+  if (recordingSubscription === undefined) {
+    onStartRecordingClick();
+    button.classList.add('recording');
+  } else {
+    onStopRecordingClick();
+    button.classList.remove('recording');
+  }
+}
 
-
+function onStartStopPlaybackClick() {
+  if (recording === undefined) {
+    return;
+  }
+  let button = document.getElementById('start-stop-playback')
+  if (ganglionDraw === undefined) {
+    drawFromStream(recording);
+    button.classList.add('connected');
+  } else {
+    ganglionDraw.unsubscribe();
+    ganglionDraw = undefined;
+    button.classList.remove('connected');
+  }
+}
 /////// set up button clicks old-school ////////
 
-document.getElementById('connect')
-    .addEventListener('click', onConnectClick);
+document.getElementById('connect-disconnect')
+    .addEventListener('click', onConnectDisconnectClick);
 
-document.getElementById('disconnect')
-    .addEventListener('click', onDisconnectClick);
+document.getElementById('start-stop-recording')
+    .addEventListener('click', onStartStopRecordingClick);
 
-document.getElementById('start-recording')
-    .addEventListener('click', onStartRecordingClick);
-
-document.getElementById('stop-recording')
-    .addEventListener('click', onStopRecordingClick);
-
-
-
+document.getElementById('start-stop-playback')
+    .addEventListener('click', onStartStopPlaybackClick);

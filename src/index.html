@@ -6,18 +6,17 @@
   </head>
   <body>
     <div id="main">
-      <div id="header">Live Brain Electric Activity</div>
+      <div id="header"><i class="fas fa-brain"></i> <i class="fas fa-bolt"></i></div>
       <div id="canvas-container">
         <canvas id="sampleScreen" height="500px" width="1400px"></canvas>
         <!-- canvas for frequency diagram
         <canvas id="freqScreen" height="300px" width="600px"></canvas> -->
       </div>
       <div id="button-container"> 
-        <button id="connect" class="test myButton">Connect</button>
-        <button id="disconnect" class="test">Disconnect</button>
-        <button id="start-recording" class="test">start recording</button>
-        <button id="stop-recording" class="test">stop recording</button>
-        <a href="" id="save-recording" ><button class="test">save recording </button > </a>
+        <button id="connect-disconnect" class="btn-circle-xl"><i class="fas fa-power-off"></i></button>
+        <button id="start-stop-recording" class="btn-circle-xl"><i class="fas fa-circle"></i></button>
+        <a href="" id="save-recording" ><button class="btn-circle-xl"><i class="fas fa-arrow-down"></i></button></a>
+        <button id="start-stop-playback" class="btn-circle-xl"><i class="fab fa-itunes-note"></i></button>
       </div>
     </div>
   </body>
